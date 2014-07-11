@@ -4,7 +4,8 @@ from django.db import models, connection
 from django.core.exceptions import FieldError
 from mock import Mock
 
-from .fields import Point, PointField, SegmentPathField, PolygonField
+from .fields import (Point, PointField, SegmentPathField, PolygonField,
+                     SegmentField, BoxField)
 
 
 class TestModel(models.Model):
@@ -12,6 +13,8 @@ class TestModel(models.Model):
     point = PointField(null=True)
     segment_path = SegmentPathField(null=True)
     polygon = PolygonField(null=True)
+    segment = SegmentField(null=True)
+    box = BoxField(null=True)
 
 
 class PointTests(SimpleTestCase):
@@ -39,12 +42,25 @@ class PointTests(SimpleTestCase):
 
             self.assertEqual(value, expected, (value_str, value, expected))
 
+    def test_default_values(self):
+        point = Point()
+
+        self.assertEqual(point.x, 0)
+        self.assertEqual(point.y, 0)
+
     def test_eq(self):
         self.assertTrue(Point(1, 1) == Point(1, 1))
         self.assertFalse(Point(1, 1) != Point(1, 1))
         self.assertTrue(Point(1, 1) != Point(2, 1))
         self.assertTrue(Point(1, 1) != Point(1, 2))
         self.assertTrue(Point(1, 1) != Point(2, 2))
+        self.assertTrue(Point(1, 1) == Point(1.0, 1.0))
+
+    def test_less_than(self):
+        self.assertTrue(Point() < Point(1, 1))
+        self.assertTrue(Point() <= Point(1, 1))
+        self.assertFalse(Point() > Point(1, 1))
+        self.assertFalse(Point() >= Point(1, 1))
 
 
 class GeometryFieldTestsMixin(object):
@@ -127,3 +143,76 @@ class PointFieldTests(GeometryFieldTestsMixin, TestCase):
         model = TestModel.objects.get(pk=model.pk)
 
         self.assertEqual(model.point, value)
+
+
+class SegmentFieldTests(GeometryFieldTestsMixin, TestCase):
+
+    field = SegmentField
+    db_type = 'lseg'
+
+    def test_store_field(self):
+        value = [Point(1, 1), Point(2, 2)]
+
+        model = TestModel()
+        model.segment = value
+        model.save()
+
+        model = TestModel.objects.get(pk=model.pk)
+
+        self.assertEqual(model.segment, value)
+
+    def test_less_than_2_points(self):
+        model = TestModel()
+        model.segment = [Point(1, 1)]
+
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+            model.save()
+
+    def test_more_than_2_points(self):
+        model = TestModel()
+        model.segment = [Point(1, 1), Point(2, 2), Point(3, 3)]
+
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+            model.save()
+
+
+class BoxFieldTests(GeometryFieldTestsMixin, TestCase):
+
+    field = BoxField
+    db_type = 'box'
+
+    def test_store_field(self):
+        value = [Point(2, 2), Point(1, 1)]
+
+        model = TestModel()
+        model.box = value
+        model.save()
+
+        model = TestModel.objects.get(pk=model.pk)
+
+        self.assertEqual(model.box, sorted(value, reverse=True))
+
+    def test_upper_right_lower_left(self):
+        value = [Point(1, 2), Point(2, 1)]  # Upper-left, Lower-right
+
+        model = TestModel()
+        model.box = value
+        model.save()
+
+        model = TestModel.objects.get(pk=model.pk)
+
+        self.assertEqual(model.box, [Point(2, 2), Point(1, 1)])
+
+    def test_less_than_2_points(self):
+        model = TestModel()
+        model.box = [Point(1, 1)]
+
+        with self.assertRaisesRegexp(ValueError, "Box needs exactly two points"):
+            model.save()
+
+    def test_more_than_2_points(self):
+        model = TestModel()
+        model.box = [Point(1, 1), Point(2, 2), Point(3, 3)]
+
+        with self.assertRaisesRegexp(ValueError, "Box needs exactly two points"):
+            model.save()

@@ -1,5 +1,6 @@
 import re
 import collections
+import functools
 
 from django.core.exceptions import FieldError
 from django.utils.six import with_metaclass
@@ -17,6 +18,7 @@ def require_postgres(fn):
     return wrapper
 
 
+@functools.total_ordering
 class Point(object):
 
     _FLOAT_RE = r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?'
@@ -48,15 +50,21 @@ class Point(object):
         return unicode(self.__str__())
 
     def __eq__(self, other):
-        return (isinstance(other, Point)
-                and other.x == self.x
-                and other.y == self.y)
+        return (isinstance(other, self.__class__)
+                and self.x == other.x
+                and self.y == other.y)
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __lt__(self, other):
+        # import ipdb; ipdb.set_trace()
+        return (isinstance(other, self.__class__)
+                and self.x <= other.x
+                and self.y <= other.y)
 
-class PathMixin(object):
+
+class PointMixin(object):
 
     SPLIT_RE = re.compile(r"\((?!\().*?\)")
 
@@ -76,7 +84,7 @@ class PathMixin(object):
         return ','.join(str(v) for v in values) if values else None
 
 
-class SegmentPathField(PathMixin,
+class SegmentPathField(PointMixin,
                        with_metaclass(models.SubfieldBase, models.Field)):
 
     @require_postgres
@@ -92,7 +100,7 @@ class SegmentPathField(PathMixin,
         return NotImplementedError(self)
 
 
-class PolygonField(PathMixin,
+class PolygonField(PointMixin,
                    with_metaclass(models.SubfieldBase, models.Field)):
 
     @require_postgres
@@ -128,6 +136,39 @@ class PointField(with_metaclass(models.SubfieldBase, models.Field)):
 
     def get_prep_value(self, value):
         return '({0.x},{0.y})'.format(value) if value else None
+
+    def get_prep_lookup(self, lookup_type, value):
+        return NotImplementedError(self)
+
+
+class SegmentField(PointMixin,
+                   with_metaclass(models.SubfieldBase, models.Field)):
+
+    @require_postgres
+    def db_type(self, connection):
+        return 'lseg'
+
+    def get_prep_value(self, value):
+        if value and len(value) != 2:
+            raise ValueError("Segment needs exactly two points")
+
+        return self._get_prep_value(value)
+
+    def get_prep_lookup(self, lookup_type, value):
+        return NotImplementedError(self)
+
+
+class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
+
+    @require_postgres
+    def db_type(self, connection):
+        return 'box'
+
+    def get_prep_value(self, value):
+        if value and len(value) != 2:
+            raise ValueError("Box needs exactly two points")
+
+        return self._get_prep_value(value)
 
     def get_prep_lookup(self, lookup_type, value):
         return NotImplementedError(self)
