@@ -1,4 +1,5 @@
 import re
+import collections
 
 from django.core.exceptions import FieldError
 from django.utils.six import with_metaclass
@@ -40,13 +41,77 @@ class Point(object):
     def __repr__(self):
         return '<Point({0.x},{0.y})>'.format(self)
 
+    def __str__(self):
+        return '({0.x},{0.y})'.format(self)
+
     def __unicode__(self):
-        return u'({0.x},{0.y})'.format(self)
+        return unicode(self.__str__())
 
     def __eq__(self, other):
         return (isinstance(other, Point)
                 and other.x == self.x
                 and other.y == self.y)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class PathMixin(object):
+
+    SPLIT_RE = re.compile(r"\((?!\().*?\)")
+
+    def to_python(self, values):
+        if values is None:
+            return None
+
+        if not isinstance(values, collections.Iterable):
+            raise TypeError("Value {} is not iterable".format(values))
+
+        if all(isinstance(v, Point) for v in values):
+            return values
+
+        return list(Point.from_string(v) for v in self.SPLIT_RE.findall(values))
+
+    def _get_prep_value(self, values):
+        return ','.join(str(v) for v in values) if values else None
+
+
+class SegmentPathField(PathMixin,
+                       with_metaclass(models.SubfieldBase, models.Field)):
+
+    @require_postgres
+    def db_type(self, connection):
+        return 'path'
+
+    def get_prep_value(self, values):
+        values = self._get_prep_value(values)
+
+        return '[{}]'.format(values) if values else None
+
+    def get_prep_lookup(self, lookup_type, value):
+        return NotImplementedError(self)
+
+
+class PolygonField(PathMixin,
+                   with_metaclass(models.SubfieldBase, models.Field)):
+
+    @require_postgres
+    def db_type(self, connection):
+        return 'polygon'
+
+    def get_prep_value(self, values):
+        if values:
+            values = tuple(values)
+
+            if values[0] != values[-1]:
+                raise ValueError('Not self-closing polygon')
+
+        values = self._get_prep_value(values)
+
+        return '({})'.format(values) if values else None
+
+    def get_prep_lookup(self, lookup_type, value):
+        return NotImplementedError(self)
 
 
 class PointField(with_metaclass(models.SubfieldBase, models.Field)):
