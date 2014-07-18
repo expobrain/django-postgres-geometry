@@ -316,3 +316,12 @@ class CircleField(with_metaclass(models.SubfieldBase, models.Field)):
 
     def get_prep_lookup(self, lookup_type, value):
         return NotImplementedError(self)
+
+
+# Try to load South's model inspector
+try:
+    from south.modelsinspector import add_introspection_rules
+    add_introspection_rules([], ['^postgres_geometry\.fields\.\w+Field'])
+
+except ImportError:
+    pass
