@@ -160,7 +160,7 @@ class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
     db_type = 'polygon'
 
     def test_store_field(self):
-        value = [Point(1, 1), Point(2, 2), Point(1, 1)]
+        value = [Point(1, 1), Point(2, 2), Point(3, 3), Point(1, 1)]
 
         model = TestModel()
         model.polygon = value
@@ -176,16 +176,16 @@ class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
         First and last points on a polygon must be equal
         """
         model = TestModel()
-        model.polygon = [Point(), Point(1, 1), Point(2, 2)]
+        model.polygon = [Point(), Point(1, 1), Point(2, 2), Point(3, 3)]
 
         with self.assertRaisesRegexp(ValueError, 'Not self-closing polygon'):
             model.save()
 
     def test_minimum_points(self):
         model = TestModel()
-        model.polygon = [Point(), Point()]
+        model.polygon = [Point(), Point(), Point()]
 
-        with self.assertRaisesRegexp(ValueError, "Needs at minimum 3 points"):
+        with self.assertRaisesRegexp(ValueError, "Needs at minimum 4 points"):
             model.save()
 
 

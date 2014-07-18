@@ -214,8 +214,8 @@ class PolygonField(PointMixin,
         if values:
             values = tuple(values)
 
-            if len(values) < 3:
-                raise ValueError("Needs at minimum 3 points")
+            if len(values) < 4:
+                raise ValueError("Needs at minimum 4 points")
 
             if values[0] != values[-1]:
                 raise ValueError('Not self-closing polygon')
