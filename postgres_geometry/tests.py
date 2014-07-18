@@ -146,6 +146,13 @@ class SegmentPathFieldTests(GeometryFieldTestsMixin, TestCase):
         self.assertIsInstance(model.segment_path, list)
         self.assertEqual(model.segment_path, value)
 
+    def test_minimum_points(self):
+        model = TestModel()
+        model.segment_path = [Point()]
+
+        with self.assertRaisesRegexp(ValueError, "Needs at minimum 2 points"):
+            model.save()
+
 
 class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
 
@@ -169,9 +176,16 @@ class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
         First and last points on a polygon must be equal
         """
         model = TestModel()
-        model.polygon = [Point(1, 1), Point(2, 2)]
+        model.polygon = [Point(), Point(1, 1), Point(2, 2)]
 
         with self.assertRaisesRegexp(ValueError, 'Not self-closing polygon'):
+            model.save()
+
+    def test_minimum_points(self):
+        model = TestModel()
+        model.polygon = [Point(), Point()]
+
+        with self.assertRaisesRegexp(ValueError, "Needs at minimum 3 points"):
             model.save()
 
 

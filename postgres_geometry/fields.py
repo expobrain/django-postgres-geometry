@@ -185,6 +185,12 @@ class SegmentPathField(PointMixin,
         return 'path'
 
     def get_prep_value(self, values):
+        if values:
+            values = tuple(values)
+
+            if len(values) < 2:
+                raise ValueError("Needs at minimum 2 points")
+
         values = self._get_prep_value(values)
 
         return '[{}]'.format(values) if values else None
@@ -207,6 +213,9 @@ class PolygonField(PointMixin,
     def get_prep_value(self, values):
         if values:
             values = tuple(values)
+
+            if len(values) < 3:
+                raise ValueError("Needs at minimum 3 points")
 
             if values[0] != values[-1]:
                 raise ValueError('Not self-closing polygon')
