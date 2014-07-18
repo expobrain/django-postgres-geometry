@@ -11,6 +11,11 @@ _FLOAT_RE = r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?'
 
 
 def require_postgres(fn):
+    """
+    Decorator that checks if the target backend engine is a PostgreSQL instance
+
+    :raises: FieldError
+    """
 
     def wrapper(self, connection):
         if 'psycopg2' not in connection.settings_dict['ENGINE']:
@@ -23,11 +28,28 @@ def require_postgres(fn):
 
 @functools.total_ordering
 class Point(object):
+    """
+    Describe a point in the space.
+    """
 
     POINT_RE = r'\((?P<x>{0}),(?P<y>{0})\)'.format(_FLOAT_RE)
 
     @staticmethod
     def from_string(value):
+        """
+        Convert a string describing a point into a `Point` instance.
+
+        The representation of a point as a string:
+
+            (x, y)
+
+        where `x` and `y` can be signed or unsigned integers or floats
+
+        :param value: The string representation of the point
+        :rtype: Point
+        :raise: ValueError if the given string is not a valid point's
+                representation
+        """
         match = re.match(Point.POINT_RE, value)
 
         if not match:
@@ -64,13 +86,30 @@ class Point(object):
                 and self.y <= other.y)
 
 
-# @functools.total_ordering
 class Circle(object):
+    """
+    Describe a circle with center and radius
+    """
 
     CIRCLE_RE = r'<{0},\s(?P<r>{1})>'.format(Point.POINT_RE, _FLOAT_RE)
 
     @staticmethod
     def from_string(value):
+        """
+        Convert a string describing a circle into a `Circle` instance.
+
+        The representation of a circle as a string:
+
+            <(x, y), r>
+
+        where `x`, 'y' and `r` can be signed or unsigned integers or floats; 'x'
+        and 'y' defines the center of the circle and 'r' the radius.
+
+        :param value: The string representation of the circle
+        :rtype: Circle
+        :raise: ValueError if the given string is not a valid circle's
+                representation
+        """
         match = re.match(Circle.CIRCLE_RE, value)
 
         if not match:
@@ -82,6 +121,15 @@ class Circle(object):
             float(values['x']), float(values['y']), float(values['r']))
 
     def __init__(self, *args):
+        """
+        Constructor accept up to 3 arguments with the following signatures:
+
+        * `Circle(r)` creates a circle in the origin with radius r`
+        * `Circle(<Point>, r)` creates a circle with center in the given point
+          and radius `r`
+        * `Circle(x, y, r)` creates a circle with center in the given `x` and
+          `y` coordinates and radius `r`
+        """
         argc = len(args)
 
         if argc == 1:
@@ -128,6 +176,9 @@ class PointMixin(object):
 
 class SegmentPathField(PointMixin,
                        with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a path; needs at least two set of points
+    """
 
     @require_postgres
     def db_type(self, connection):
@@ -144,6 +195,10 @@ class SegmentPathField(PointMixin,
 
 class PolygonField(PointMixin,
                    with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a polygon; needs at least three set of points and the first
+    and last points must be equal
+    """
 
     @require_postgres
     def db_type(self, connection):
@@ -165,6 +220,9 @@ class PolygonField(PointMixin,
 
 
 class PointField(with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a single point in space
+    """
 
     @require_postgres
     def db_type(self, connection):
@@ -185,6 +243,9 @@ class PointField(with_metaclass(models.SubfieldBase, models.Field)):
 
 class SegmentField(PointMixin,
                    with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a path; needs exactly two set of points
+    """
 
     @require_postgres
     def db_type(self, connection):
@@ -201,6 +262,13 @@ class SegmentField(PointMixin,
 
 
 class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a box's definition.
+
+    Needs two set of points defining the opposite corners of box. Any pair of
+    opposite corners can be set to this field but on retrieve the upper-right
+    and lower-left corners will be given back in this order.
+    """
 
     @require_postgres
     def db_type(self, connection):
@@ -217,6 +285,9 @@ class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
 
 
 class CircleField(with_metaclass(models.SubfieldBase, models.Field)):
+    """
+    Field to store a circle's definition
+    """
 
     @require_postgres
     def db_type(self, connection):
