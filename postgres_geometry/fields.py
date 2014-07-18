@@ -7,6 +7,9 @@ from django.utils.six import with_metaclass
 from django.db import models
 
 
+_FLOAT_RE = r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?'
+
+
 def require_postgres(fn):
 
     def wrapper(self, connection):
@@ -21,13 +24,11 @@ def require_postgres(fn):
 @functools.total_ordering
 class Point(object):
 
-    _FLOAT_RE = r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?'
-
-    POINT_RE = re.compile(r'\((?P<x>{0}),(?P<y>{0})\)'.format(_FLOAT_RE))
+    POINT_RE = r'\((?P<x>{0}),(?P<y>{0})\)'.format(_FLOAT_RE)
 
     @staticmethod
     def from_string(value):
-        match = Point.POINT_RE.match(value)
+        match = re.match(Point.POINT_RE, value)
 
         if not match:
             raise ValueError("Value {} is not a valid point".format(value))
@@ -58,10 +59,50 @@ class Point(object):
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        # import ipdb; ipdb.set_trace()
         return (isinstance(other, self.__class__)
                 and self.x <= other.x
                 and self.y <= other.y)
+
+
+# @functools.total_ordering
+class Circle(object):
+
+    CIRCLE_RE = r'<{0},\s(?P<r>{1})>'.format(Point.POINT_RE, _FLOAT_RE)
+
+    @staticmethod
+    def from_string(value):
+        match = re.match(Circle.CIRCLE_RE, value)
+
+        if not match:
+            raise ValueError("Value {} is not a valid circle".format(value))
+
+        values = match.groupdict()
+
+        return Circle(
+            float(values['x']), float(values['y']), float(values['r']))
+
+    def __init__(self, *args):
+        argc = len(args)
+
+        if argc == 1:
+            self.center = Point()
+            self.radius = args[0]
+
+        elif argc == 2 and isinstance(args[0], Point):
+            self.center = args[0]
+            self.radius = args[1]
+
+        elif argc == 3:
+            self.center = Point(*args[:2])
+            self.radius = args[2]
+
+        else:
+            raise TypeError("Invalid set of arguments {}".format(args))
+
+    def __eq__(self, other):
+        return (isinstance(other, Circle)
+                and self.center == other.center
+                and self.radius == other.radius)
 
 
 class PointMixin(object):
@@ -78,7 +119,8 @@ class PointMixin(object):
         if all(isinstance(v, Point) for v in values):
             return values
 
-        return list(Point.from_string(v) for v in self.SPLIT_RE.findall(values))
+        return list(
+            Point.from_string(v) for v in re.findall(self.SPLIT_RE, values))
 
     def _get_prep_value(self, values):
         return ','.join(str(v) for v in values) if values else None
@@ -169,6 +211,28 @@ class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
             raise ValueError("Box needs exactly two points")
 
         return self._get_prep_value(value)
+
+    def get_prep_lookup(self, lookup_type, value):
+        return NotImplementedError(self)
+
+
+class CircleField(with_metaclass(models.SubfieldBase, models.Field)):
+
+    @require_postgres
+    def db_type(self, connection):
+        return 'circle'
+
+    def to_python(self, value):
+        if value is None or isinstance(value, Circle):
+            return value
+
+        return Circle.from_string(value)
+
+    def get_prep_value(self, value):
+        if value:
+            return "<{0.center.x}, {0.center.y}}, {0.radius}>".format(value)
+
+        return None
 
     def get_prep_lookup(self, lookup_type, value):
         return NotImplementedError(self)

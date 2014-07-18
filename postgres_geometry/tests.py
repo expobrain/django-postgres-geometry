@@ -4,8 +4,8 @@ from django.db import models, connection
 from django.core.exceptions import FieldError
 from mock import Mock
 
-from .fields import (Point, PointField, SegmentPathField, PolygonField,
-                     SegmentField, BoxField)
+from .fields import (Point, Circle, PointField, SegmentPathField, PolygonField,
+                     SegmentField, BoxField, CircleField)
 
 
 class TestModel(models.Model):
@@ -15,6 +15,53 @@ class TestModel(models.Model):
     polygon = PolygonField(null=True)
     segment = SegmentField(null=True)
     box = BoxField(null=True)
+
+
+class CircleTests(SimpleTestCase):
+
+    def test_from_string(self):
+        values = (
+            ('<(1,1), 1>', Circle(1, 1, 1)),
+            ('<(1,1), -1>', Circle(1, 1, -1)),
+
+            ('<(1,1), 1.5>', Circle(1, 1, 1.5)),
+            ('<(1,1), -1.5>', Circle(1, 1, -1.5)),
+
+            ('<(1,1), .5>', Circle(1, 1, 0.5)),
+            ('<(1,1), -.5>', Circle(1, 1, -0.5)),
+        )
+
+        for value_str, expected in values:
+            value = Circle.from_string(value_str)
+
+            self.assertEqual(value, expected, (value_str, value, expected))
+
+    def test_constructor_radius(self):
+        circle = Circle(1)
+
+        self.assertEqual(circle.center, Point())
+        self.assertEqual(circle.radius, 1)
+
+    def test_constructor_point_radius(self):
+        center = Point(1, 2)
+        circle = Circle(center, 1)
+
+        self.assertEqual(circle.center, center)
+        self.assertEqual(circle.radius, 1)
+
+    def test_constructor_center_radius(self):
+        circle = Circle(1, 2, 3)
+
+        self.assertEqual(circle.center, Point(1, 2))
+        self.assertEqual(circle.radius, 3)
+
+    def test_eq(self):
+        self.assertTrue(Point(1, 1) == Point(1, 1))
+        self.assertFalse(Point(1, 1) != Point(1, 1))
+        self.assertTrue(Point(1, 1) != Point(2, 1))
+        self.assertTrue(Point(1, 1) != Point(1, 2))
+        self.assertTrue(Point(1, 1) != Point(2, 2))
+        self.assertTrue(Point(1, 1) == Point(1.0, 1.0))
 
 
 class PointTests(SimpleTestCase):
@@ -215,4 +262,35 @@ class BoxFieldTests(GeometryFieldTestsMixin, TestCase):
         model.box = [Point(1, 1), Point(2, 2), Point(3, 3)]
 
         with self.assertRaisesRegexp(ValueError, "Box needs exactly two points"):
+            model.save()
+
+
+class CircleFieldTests(GeometryFieldTestsMixin, TestCase):
+
+    field = CircleField
+    db_type = 'circle'
+
+    def test_store_field(self):
+        value = [Point(1, 1), Point(2, 2)]
+
+        model = TestModel()
+        model.segment = value
+        model.save()
+
+        model = TestModel.objects.get(pk=model.pk)
+
+        self.assertEqual(model.segment, value)
+
+    def test_less_than_2_points(self):
+        model = TestModel()
+        model.segment = [Point(1, 1)]
+
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+            model.save()
+
+    def test_more_than_2_points(self):
+        model = TestModel()
+        model.segment = [Point(1, 1), Point(2, 2), Point(3, 3)]
+
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
             model.save()
