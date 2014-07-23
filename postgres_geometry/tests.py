@@ -171,21 +171,11 @@ class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
         self.assertIsInstance(model.polygon, list)
         self.assertEqual(model.polygon, value)
 
-    def test_non_closed_polygon(self):
-        """
-        First and last points on a polygon must be equal
-        """
-        model = TestModel()
-        model.polygon = [Point(), Point(1, 1), Point(2, 2), Point(3, 3)]
-
-        with self.assertRaisesRegexp(ValueError, 'Not self-closing polygon'):
-            model.save()
-
     def test_minimum_points(self):
         model = TestModel()
-        model.polygon = [Point(), Point(), Point()]
+        model.polygon = [Point(), Point()]
 
-        with self.assertRaisesRegexp(ValueError, "Needs at minimum 4 points"):
+        with self.assertRaisesRegexp(ValueError, "Needs at minimum 3 points"):
             model.save()
 
 
@@ -226,14 +216,14 @@ class SegmentFieldTests(GeometryFieldTestsMixin, TestCase):
         model = TestModel()
         model.segment = [Point(1, 1)]
 
-        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly 2 points"):
             model.save()
 
     def test_more_than_2_points(self):
         model = TestModel()
         model.segment = [Point(1, 1), Point(2, 2), Point(3, 3)]
 
-        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly 2 points"):
             model.save()
 
 
@@ -268,14 +258,14 @@ class BoxFieldTests(GeometryFieldTestsMixin, TestCase):
         model = TestModel()
         model.box = [Point(1, 1)]
 
-        with self.assertRaisesRegexp(ValueError, "Box needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Box needs exactly 2 points"):
             model.save()
 
     def test_more_than_2_points(self):
         model = TestModel()
         model.box = [Point(1, 1), Point(2, 2), Point(3, 3)]
 
-        with self.assertRaisesRegexp(ValueError, "Box needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Box needs exactly 2 points"):
             model.save()
 
 
@@ -299,12 +289,12 @@ class CircleFieldTests(GeometryFieldTestsMixin, TestCase):
         model = TestModel()
         model.segment = [Point(1, 1)]
 
-        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly 2 points"):
             model.save()
 
     def test_more_than_2_points(self):
         model = TestModel()
         model.segment = [Point(1, 1), Point(2, 2), Point(3, 3)]
 
-        with self.assertRaisesRegexp(ValueError, "Segment needs exactly two points"):
+        with self.assertRaisesRegexp(ValueError, "Segment needs exactly 2 points"):
             model.save()

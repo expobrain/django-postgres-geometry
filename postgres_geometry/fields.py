@@ -202,8 +202,7 @@ class SegmentPathField(PointMixin,
 class PolygonField(PointMixin,
                    with_metaclass(models.SubfieldBase, models.Field)):
     """
-    Field to store a polygon; needs at least three set of points and the first
-    and last points must be equal
+    Field to store a polygon; needs at least three set of points
     """
 
     @require_postgres
@@ -215,10 +214,7 @@ class PolygonField(PointMixin,
             values = tuple(values)
 
             if len(values) < 4:
-                raise ValueError("Needs at minimum 4 points")
-
-            if values[0] != values[-1]:
-                raise ValueError('Not self-closing polygon')
+                raise ValueError("Needs at minimum 3 points")
 
         values = self._get_prep_value(values)
 
@@ -262,7 +258,7 @@ class SegmentField(PointMixin,
 
     def get_prep_value(self, value):
         if value and len(value) != 2:
-            raise ValueError("Segment needs exactly two points")
+            raise ValueError("Segment needs exactly 2 points")
 
         return self._get_prep_value(value)
 
@@ -285,7 +281,7 @@ class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
 
     def get_prep_value(self, value):
         if value and len(value) != 2:
-            raise ValueError("Box needs exactly two points")
+            raise ValueError("Box needs exactly 2 points")
 
         return self._get_prep_value(value)
 

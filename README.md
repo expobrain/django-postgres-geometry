@@ -47,12 +47,28 @@ tests can be run with:
 
 
 Todo
-----
+====
 
 - implement `get_prep_lookup()` functions
 - do not require a PostgreSQL instance to run the unit tests
 - extend the support of geometry types to other backends as well (SQLite, MySQL,
   etc.)
+
+
+Changelog
+=========
+
+0.1.1
+-----
+
+- Fixed Polygon field validation: a polygon must have a minimum of 3 points and
+  removed check of last point is equal to the first point 
+
+0.1
+---
+
+- First release with all the PostgreSQL geometrics types implemented except the
+  SQL filtering support
 
 
 [1]: http://www.postgresql.org/docs/9.3/static/datatype-geometric.html
