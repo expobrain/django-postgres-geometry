@@ -160,7 +160,7 @@ class PolygonFieldTests(GeometryFieldTestsMixin, TestCase):
     db_type = 'polygon'
 
     def test_store_field(self):
-        value = [Point(1, 1), Point(2, 2), Point(3, 3), Point(1, 1)]
+        value = [Point(0, 0), Point(1, 0), Point(1, 1)]
 
         model = TestModel()
         model.polygon = value

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-posgtres-geometry",
-    version="0.1.1",
+    version="0.1.2",
     packages=find_packages(),
     install_requires=['django', 'psycopg2'],
     description="Django ORM field for Postgres geometry types",

@@ -213,7 +213,7 @@ class PolygonField(PointMixin,
         if values:
             values = tuple(values)
 
-            if len(values) < 4:
+            if len(values) < 3:
                 raise ValueError("Needs at minimum 3 points")
 
         values = self._get_prep_value(values)

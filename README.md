@@ -58,11 +58,17 @@ Todo
 Changelog
 =========
 
+0.1.2
+-----
+
+- fixed validator on PolygonField: minimum number of points for a polygon is 3
+  not 4 
+
 0.1.1
 -----
 
 - Fixed Polygon field validation: a polygon must have a minimum of 3 points and
-  removed check of last point is equal to the first point 
+  removed check of last point is equal to the first point
 
 0.1
 ---
