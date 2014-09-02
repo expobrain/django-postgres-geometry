@@ -58,11 +58,16 @@ Todo
 Changelog
 =========
 
+0.1.3
+-----
+
+- Do not fail if database has PostGIS extensions
+
 0.1.2
 -----
 
 - fixed validator on PolygonField: minimum number of points for a polygon is 3
-  not 4 
+  not 4
 
 0.1.1
 -----

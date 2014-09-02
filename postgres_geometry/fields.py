@@ -18,7 +18,9 @@ def require_postgres(fn):
     """
 
     def wrapper(self, connection):
-        if 'psycopg2' not in connection.settings_dict['ENGINE']:
+        engine = connection.settings_dict['ENGINE']
+
+        if 'psycopg2' not in engine and 'postgis' not in engine:
             raise FieldError("Current database is not a PostgreSQL instance")
 
         return fn(self, connection)
