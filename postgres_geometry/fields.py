@@ -176,8 +176,8 @@ class PointMixin(object):
         return ','.join(str(v) for v in values) if values else None
 
 
-class SegmentPathField(PointMixin,
-                       with_metaclass(models.SubfieldBase, models.Field)):
+class SegmentPathField(with_metaclass(models.SubfieldBase,
+                        PointMixin, models.Field)):
     """
     Field to store a path; needs at least two set of points
     """
@@ -201,8 +201,8 @@ class SegmentPathField(PointMixin,
         return NotImplementedError(self)
 
 
-class PolygonField(PointMixin,
-                   with_metaclass(models.SubfieldBase, models.Field)):
+class PolygonField(with_metaclass(models.SubfieldBase,
+                    PointMixin, models.Field)):
     """
     Field to store a polygon; needs at least three set of points
     """
@@ -248,8 +248,8 @@ class PointField(with_metaclass(models.SubfieldBase, models.Field)):
         return NotImplementedError(self)
 
 
-class SegmentField(PointMixin,
-                   with_metaclass(models.SubfieldBase, models.Field)):
+class SegmentField(with_metaclass(models.SubfieldBase,
+                    PointMixin, models.Field)):
     """
     Field to store a path; needs exactly two set of points
     """
@@ -268,7 +268,7 @@ class SegmentField(PointMixin,
         return NotImplementedError(self)
 
 
-class BoxField(PointMixin, with_metaclass(models.SubfieldBase, models.Field)):
+class BoxField(with_metaclass(models.SubfieldBase, PointMixin, models.Field)):
     """
     Field to store a box's definition.
 
